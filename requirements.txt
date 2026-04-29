@@ -4,8 +4,8 @@ matplotlib
 seaborn
 scikit-learn
 torch
-tkinter
 openpyxl
 pyyaml
 folium
 geopy
+xlrd
