@@ -1,0 +1,41 @@
+{
+  "comment": "Configuration for Traffic-Based Route Guidance System",
+  "comment2": "Member 1 - System Architect & Integration",
+  
+  "graph": {
+    "data_source": "data/raw/Traffic_Count_Locations_with_LONG_LAT.csv",
+    "connectivity_threshold_km": 3.0,
+    "comment": "Sites within this distance are connected (simplified model)"
+  },
+  
+  "routing": {
+    "speed_limit_kmh": 60,
+    "intersection_delay_s": 30,
+    "comment": "Assumptions from assignment brief"
+  },
+  
+  "pathfinding": {
+    "algorithm": "A*",
+    "num_paths": 5,
+    "comment": "Find top-5 paths using dynamic travel costs"
+  },
+  
+  "ml_models": {
+    "lstm_model_path": "saved_models/lstm_model.h5",
+    "gru_model_path": "saved_models/gru_model.h5",
+    "xgboost_model_path": "saved_models/xgboost_model.pkl",
+    "comment": "Placeholder paths - Member 2 & 3 to provide actual models"
+  },
+  
+  "data_scaling": {
+    "scaler_path": "data/processed/scaler.pkl",
+    "comment": "MinMaxScaler from Member 2's preprocessing"
+  },
+  
+  "default_parameters": {
+    "departure_time": "09:00",
+    "speed_unit": "km/h",
+    "distance_unit": "km",
+    "time_unit": "seconds"
+  }
+}
