@@ -49,86 +49,48 @@ class TrafficPredictor:
             print(f"Scaler not found at {scaler_path}")
             raise e
 
-    def _extract_features(self, site_id, date, time, location):
+    def _extract_features(self, site_id, timestamp):
         """
-        Convert input (site_id, date, time, location) into model features.
-
-        Returns 12 previous normalized flow values (shape: 1 x 12),
-        matching the training format from data_processor.py.
-
-        Parameters:
-        - site_id (int): SCATS site ID
-        - date (str): target date in format 'YYYY-MM-DD'
-        - time (str): target time in format 'HH:MM'
-        - location (str): specific location to filter by
-
-        Returns:
-        - numpy array of shape (1, 12) with normalized flow values
-        """
-        #  Convert date and time to datetime
-        timestamp = datetime.strptime(f"{date} {time}", "%Y-%m-%d %H:%M")
-
-        #  Get previous flow values for this site 
-        prev_flows = []
-
-        if self.historical_data:
-            # Find all records for this site
-            site_records = []
-            for (sid, date_str, loc), flows in self.historical_data.items():
-                if sid == site_id and location.upper() in loc.upper():
-                    for time_str, flow in flows.items():
-                        # Parse time
-                        hour, minute = map(int, time_str.split(':'))
-                        try:
-                            if ' ' in date_str:
-                                dt = datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-                            else:
-                                dt = datetime.strptime(date_str, '%Y-%m-%d')
-                            dt = dt.replace(hour=hour, minute=minute, second=0)
-                            site_records.append((dt, flow, location))
-                        except ValueError:
-                            continue
-
-            # Sort by time and get flows before target timestamp
-            site_records.sort(key=lambda x: x[0])
-            prev_flows = [flow for dt, flow, location in site_records if dt < timestamp]
-
-        #  Pad if not enough historical data 
-        if len(prev_flows) < self.timesteps:
-            # Pad with average flow value
-            pad_value = 30.0
-            padding_needed = self.timesteps - len(prev_flows)
-            prev_flows = [pad_value] * padding_needed + prev_flows
-            print(f"Insufficient historical data for site {site_id}. Padded {padding_needed} values with {pad_value}.")
-
-        # Take only the last timesteps values
-        prev_flows = prev_flows[-self.timesteps:]
-
-        #  Normalize using MinMaxScaler
-        if self.scaler is not None:
-            flows_array = np.array(prev_flows).reshape(-1, 1)
-            normalized = self.scaler.transform(flows_array).flatten()
-        else:
-            raise ValueError("Scaler not loaded. Call train_model() first to load the scaler.")
-
-        return normalized.reshape(1, -1)
-
-    def predict_flow(self, site_id, timestamp):
-        """
-        Predict traffic flow for a given site and time.
+        Convert site ID and timestamp into model features.
 
         Parameters:
         - site_id (int)
-        - timestamp (str or datetime)
+        - timestamp (str): format HH:MM
 
         Returns:
-        - predicted flow (float)
+        - numpy array of features
+        """
+
+        from datetime import datetime
+        import numpy as np
+
+        # Convert timestamp string into datetime
+        if isinstance(timestamp, str):
+            timestamp = datetime.strptime(timestamp, "%H:%M")
+
+        hour = timestamp.hour
+
+        # Simple feature vector
+        features = [
+            hour,
+            np.sin(2 * np.pi * hour / 24),
+            np.cos(2 * np.pi * hour / 24),
+            site_id % 100,
+            1.0
+        ]
+
+        return np.array(features).reshape(1, -1)
+
+    def predict_flow(self, site_id, timestamp):
+        """
+        Predict traffic flow for a site and time.
         """
 
         if not self.trained:
             raise ValueError("Model has not been trained yet.")
 
         X = self._extract_features(site_id, timestamp)
+
         prediction = self.model.predict(X)
 
         return float(prediction[0])
