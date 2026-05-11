@@ -6,25 +6,40 @@ using the trained XGBoost model.
 
 Author: Member 3
 """
-
+import pickle
+import os
 import numpy as np
+
 from datetime import datetime
-from third_model import ThirdModel
+from ml_models.third_model import ThirdModel
 
 
 class TrafficPredictor:
-    def __init__(self, timesteps=12):
+    def __init__(self):
         """
-        Initialize predictor with XGBoost model.
+        Load trained XGBoost model.
+        """
 
-        Parameters:
-        - timesteps (int): number of previous flow values as features (default: 12)
-        """
-        self.model = ThirdModel()
-        self.trained = False
-        self.timesteps = timesteps
-        self.scaler = None
-        self.historical_data = {}
+        model_path = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "saved_models",
+                "xgboost_model.pkl"
+            )
+        )
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"Trained model not found: {model_path}"
+            )
+
+        with open(model_path, "rb") as f:
+            self.model = pickle.load(f)
+
+        self.trained = True
+
+        print("[OK] XGBoost model loaded successfully.")
 
     def train_model(self, X_train, y_train, scaler_path='data/processed/scaler.pkl'):
         """

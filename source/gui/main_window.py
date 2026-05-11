@@ -1,3 +1,13 @@
+import sys
+import os
+
+# Add project root to Python path
+sys.path.append(
+    os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..")
+    )
+)
+
 import tkinter as tk
 from tkinter import ttk
 
@@ -5,10 +15,12 @@ from input_panel import InputPanel
 from result_panel import ResultPanel
 from visualization import VisualizationPanel
 
-from ml_models.predictor import TrafficPredictor
 from integration.traffic_route_finder import TrafficRouteFinder
 from data_processing.graph_builder import GraphBuilder
 from pathfinding.route_finder import TopKRouteFinder
+
+from data_processing.data_loader import TrafficLocationLoader
+from ml_models.predictor import TrafficPredictor
 
 
 class MainWindow:
@@ -20,13 +32,46 @@ class MainWindow:
 
         # --- Backend Initialization ---
 
-        # TODO:
-        # Replace with real graph loader from Member 1
+        try:
+            # Load traffic locations
+            self.loader = TrafficLocationLoader(
+                "../data/raw/Traffic_Count_Locations_with_LONG_LAT.csv"
+            )
 
-        self.graph = None
-        self.traffic_finder = None
-        self.route_finder = None
-        self.predictor = None
+            self.loader.load_locations()
+
+            # Build graph
+            self.graph = GraphBuilder(self.loader)
+
+            # Add graph nodes
+            self.graph.add_nodes_from_locations()
+
+            # Connect nearby intersections
+            self.graph.add_edges_between_nearby_sites(10.0)
+
+            # Load predictor
+            self.predictor = TrafficPredictor()
+
+            # Traffic route integration
+            self.traffic_finder = TrafficRouteFinder(
+                "../config.json",
+                self.graph
+            )
+
+            self.traffic_finder.set_ml_predictor(
+                self.predictor
+            )
+
+            # Top-K route finder
+            self.route_finder = TopKRouteFinder(
+                self.graph,
+                self.traffic_finder
+            )
+
+            print("[OK] Backend initialized successfully.")
+
+        except Exception as e:
+            print(f"[ERROR] Backend initialization failed: {e}")
 
         # --- Main Container ---
         main_frame = ttk.Frame(root, padding=20)
@@ -59,7 +104,7 @@ class MainWindow:
 
     def find_route(self, data):
         """
-        Placeholder route-finding logic.
+        Route-finding logic.
         """
 
         origin = data["origin"]
@@ -69,32 +114,34 @@ class MainWindow:
 
         self.status_label.config(text="Finding routes...")
 
-        # Placeholder until backend fully connected
-        routes = []
-
         try:
-            # TODO:
-            # Replace with real backend integration
+            real_paths = self.route_finder.find_top_k_paths(
+                int(origin),
+                int(destination)
+            )
 
-            # Example future integration:
-            #
-            # real_routes = self.route_finder.find_top_k_paths(
-            #     int(origin),
-            #     int(destination),
-            #     timestamp=time
-            # )
+            print("REAL PATHS:", real_paths)
 
-            # Temporary mock result
-            routes = [
-                {
-                    "route": f"{origin} → 3001 → 3005 → {destination}",
-                    "time": "12 mins",
+            routes = []
+
+            for path, cost in real_paths:
+                route_string = " → ".join(
+                    [str(node) for node in path]
+                )
+
+                routes.append({
+                    "route": route_string,
+                    "time": f"{cost:.2f} sec",
                     "model": model
-                }
-            ]
+                })
 
         except Exception as e:
-            self.status_label.config(text=f"Error: {str(e)}")
+            print(f"[ROUTING ERROR] {e}")
+
+            self.status_label.config(
+                text=f"Routing Error: {str(e)}"
+            )
+
             return
 
         self.result_panel.display_results(routes)

@@ -41,6 +41,9 @@ class TrafficLocationLoader:
             
             # Extract relevant columns
             # CSV has: X (longitude), Y (latitude), FID (site ID), SITE_DESC
+            # Limit dataset size for assignment/testing
+            self.locations_df = self.locations_df.head(40)
+
             for _, row in self.locations_df.iterrows():
                 site_id = int(row['FID'])
                 latitude = float(row['Y'])
