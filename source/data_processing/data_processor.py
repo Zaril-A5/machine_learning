@@ -59,7 +59,7 @@ class DataProcessor:
     def preprocess_and_save(self, save_dir: str = 'data/processed/'):
         """
         load raw data, clean, normalise, create sequences,
-        split train/test, save everything.
+        split train/test (80/20%), save everything.
         """
         print("Cleaning data...")
         df = self.clean_data()
