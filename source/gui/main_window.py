@@ -5,6 +5,11 @@ from input_panel import InputPanel
 from result_panel import ResultPanel
 from visualization import VisualizationPanel
 
+from ml_models.predictor import TrafficPredictor
+from integration.traffic_route_finder import TrafficRouteFinder
+from data_processing.graph_builder import GraphBuilder
+from pathfinding.route_finder import TopKRouteFinder
+
 
 class MainWindow:
     def __init__(self, root):
@@ -12,6 +17,16 @@ class MainWindow:
 
         self.root.title("Traffic Route Finder")
         self.root.geometry("900x900")
+
+        # --- Backend Initialization ---
+
+        # TODO:
+        # Replace with real graph loader from Member 1
+
+        self.graph = None
+        self.traffic_finder = None
+        self.route_finder = None
+        self.predictor = None
 
         # --- Main Container ---
         main_frame = ttk.Frame(root, padding=20)
@@ -54,51 +69,45 @@ class MainWindow:
 
         self.status_label.config(text="Finding routes...")
 
-        # TODO:
-        # Replace this with real integration:
-        # - predictor.py
-        # - route_finder.py
-        # - travel_time_estimator.py
+        # Placeholder until backend fully connected
+        routes = []
 
-        routes = [
-            {
-                "route": f"{origin} → 3001 → 3005 → {destination}",
-                "time": "12 mins",
-                "model": model
-            },
-            {
-                "route": f"{origin} → 3010 → {destination}",
-                "time": "15 mins",
-                "model": model
-            },
-            {
-                "route": f"{origin} → 3020 → 3025 → {destination}",
-                "time": "18 mins",
-                "model": model
-            },
-            {
-                "route": f"{origin} → 3030 → {destination}",
-                "time": "20 mins",
-                "model": model
-            },
-            {
-                "route": f"{origin} → 3040 → 3050 → {destination}",
-                "time": "25 mins",
-                "model": model
-            }
-        ]
+        try:
+            # TODO:
+            # Replace with real backend integration
+
+            # Example future integration:
+            #
+            # real_routes = self.route_finder.find_top_k_paths(
+            #     int(origin),
+            #     int(destination),
+            #     timestamp=time
+            # )
+
+            # Temporary mock result
+            routes = [
+                {
+                    "route": f"{origin} → 3001 → 3005 → {destination}",
+                    "time": "12 mins",
+                    "model": model
+                }
+            ]
+
+        except Exception as e:
+            self.status_label.config(text=f"Error: {str(e)}")
+            return
 
         self.result_panel.display_results(routes)
 
-        # Visualize first route (placeholder)
-        sample_route_nodes = [
-            origin,
-            "3001",
-            "3005",
-            destination
-        ]
+        if routes:
+            first_route = routes[0]["route"]
 
-        self.visual_panel.draw_route(sample_route_nodes)
+            route_nodes = [
+                node.strip()
+                for node in first_route.split("→")
+            ]
+
+            self.visual_panel.draw_route(route_nodes)
 
         self.status_label.config(
             text=f"Showing routes from {origin} to {destination}"
