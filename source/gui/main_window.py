@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 
 # Add project root to Python path
 sys.path.append(
@@ -21,6 +22,7 @@ from pathfinding.route_finder import TopKRouteFinder
 
 from data_processing.data_loader import TrafficLocationLoader
 from ml_models.predictor import TrafficPredictor
+from data_processing.traffic_flow_loader import TrafficFlowLoader
 
 
 class MainWindow:
@@ -46,15 +48,33 @@ class MainWindow:
             # Add graph nodes
             self.graph.add_nodes_from_locations()
 
+            print(list(self.graph.nodes.keys())[:20])
+
             # Connect nearby intersections
-            self.graph.add_edges_between_nearby_sites(10.0)
+            self.graph.add_edges_between_nearby_sites(20.0)
+
+            self.graph.display_graph_info()
 
             # Load predictor
             self.predictor = TrafficPredictor()
 
+            # Load historical traffic flow data
+            self.flow_loader = TrafficFlowLoader(
+                "../data/raw/Scats Data October 2006.xls"
+            )
+
+            self.flow_loader.load_flow_data()
+
+            # Give historical data to predictor
+            self.predictor.historical_data = self.flow_loader.flow_data
+
+            # Load config file
+            with open("../config.json", "r") as f:
+                config = json.load(f)
+
             # Traffic route integration
             self.traffic_finder = TrafficRouteFinder(
-                "../config.json",
+                config,
                 self.graph
             )
 
@@ -115,12 +135,19 @@ class MainWindow:
         self.status_label.config(text="Finding routes...")
 
         try:
-            real_paths = self.route_finder.find_top_k_paths(
+            real_paths = self.route_finder.find_top_5_paths(
                 int(origin),
                 int(destination)
             )
 
-            print("REAL PATHS:", real_paths)
+            formatted_paths = [
+                (path, round(cost, 2))
+                for path, cost in real_paths
+            ]
+
+            print("REAL PATHS:", formatted_paths)
+            print(f"Origin: {origin}")
+            print(f"Destination: {destination}")
 
             routes = []
 

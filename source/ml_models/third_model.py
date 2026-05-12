@@ -5,7 +5,8 @@ XGBoost-based traffic prediction model.
 
 Author: Member 3
 """
-
+import joblib
+import os
 import numpy as np
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -41,6 +42,30 @@ class ThirdModel:
         )
 
         self.model.fit(X_train, y_train)
+
+    def load_model(self, model_path=None):
+        """
+        Load trained XGBoost model from disk.
+        """
+
+        if model_path is None:
+            model_path = os.path.abspath(
+                os.path.join(
+                    os.path.dirname(__file__),
+                    "..",
+                    "saved_models",
+                    "xgboost_model.pkl"
+                )
+            )
+
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"Trained model not found: {model_path}"
+            )
+
+        self.model = joblib.load(model_path)
+
+        print("[OK] XGBoost model loaded successfully.")
 
     def predict(self, X):
         """

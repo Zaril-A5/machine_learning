@@ -11,6 +11,8 @@ import heapq
 from typing import List, Tuple, Optional, Callable
 from datetime import datetime
 
+from sklearn import neighbors
+
 
 class PathNode:
     """
@@ -118,10 +120,20 @@ class TopKRouteFinder:
         heapq.heappush(open_set, (start_node.f_cost, iteration, start_node))
         iteration += 1
         
+        visited_nodes = set()
+        
         while open_set and len(paths_found) < k and iteration < max_iterations:
             _, _, current_node = heapq.heappop(open_set)
+
+            # Skip already visited nodes
+            if current_node.site_id in visited_nodes:
+                continue
+
+            visited_nodes.add(current_node.site_id)
             
             # Check if we reached the goal
+            print(f"Checking node: {current_node.site_id}")
+
             if current_node.site_id == goal_site:
                 path = current_node.reconstruct_path()
                 path_tuple = tuple(path)
@@ -134,6 +146,13 @@ class TopKRouteFinder:
             
             # Explore neighbors
             neighbors = self.graph.get_successors(current_node.site_id)
+            
+            formatted_neighbors = [
+                (node, round(cost, 2))
+                for node, cost in neighbors
+            ]
+
+            print(f"Neighbors: {formatted_neighbors}")
             
             for neighbor_site, distance_km in neighbors:
                 # Get dynamic travel time instead of using static distance

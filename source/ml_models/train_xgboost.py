@@ -23,6 +23,10 @@ y_train = np.load("../data/processed/y_train.npy")
 X_test = np.load("../data/processed/X_test.npy")
 y_test = np.load("../data/processed/y_test.npy")
 
+print(X_train.shape)
+
+print(X_train[0])
+
 print("Training data loaded successfully.")
 
 # -----------------------------

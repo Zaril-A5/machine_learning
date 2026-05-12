@@ -6,40 +6,43 @@ using the trained XGBoost model.
 
 Author: Member 3
 """
-import pickle
+
+import pandas as pd
+import joblib
 import os
 import numpy as np
 
-from datetime import datetime
 from ml_models.third_model import ThirdModel
 
 
 class TrafficPredictor:
-    def __init__(self):
+    def __init__(self, timesteps=12):
         """
-        Load trained XGBoost model.
+        Initialize predictor and load trained XGBoost model.
         """
 
-        model_path = os.path.abspath(
+        self.timesteps = timesteps
+        self.trained = False
+
+        self.model = ThirdModel()
+        self.model.load_model()
+
+        # Load scaler
+        scaler_path = os.path.abspath(
             os.path.join(
                 os.path.dirname(__file__),
                 "..",
-                "saved_models",
-                "xgboost_model.pkl"
+                "..",
+                "data",
+                "processed",
+                "scaler.pkl"
             )
         )
 
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(
-                f"Trained model not found: {model_path}"
-            )
+        self.scaler = joblib.load(scaler_path)
 
-        with open(model_path, "rb") as f:
-            self.model = pickle.load(f)
-
-        self.trained = True
-
-        print("[OK] XGBoost model loaded successfully.")
+        # Historical traffic data
+        self.historical_data = None
 
     def train_model(self, X_train, y_train, scaler_path='data/processed/scaler.pkl'):
         """
@@ -64,47 +67,58 @@ class TrafficPredictor:
             print(f"Scaler not found at {scaler_path}")
             raise e
 
-    def _extract_features(self, site_id, timestamp):
+    def _extract_features(self, site_id, date, time, location):
         """
-        Convert site ID and timestamp into model features.
-
-        Parameters:
-        - site_id (int)
-        - timestamp (str): format HH:MM
-
-        Returns:
-        - numpy array of features
+        Extract 12 previous normalized traffic flow values.
         """
 
-        from datetime import datetime
-        import numpy as np
+        if self.historical_data is None:
+            raise ValueError("Historical traffic data not loaded.")
 
-        # Convert timestamp string into datetime
-        if isinstance(timestamp, str):
-            timestamp = datetime.strptime(timestamp, "%H:%M")
+        # Filter matching rows
+        df = self.historical_data
 
-        hour = timestamp.hour
-
-        # Simple feature vector
-        features = [
-            hour,
-            np.sin(2 * np.pi * hour / 24),
-            np.cos(2 * np.pi * hour / 24),
-            site_id % 100,
-            1.0
+        row = df[
+            (df["SCATS Number"] == site_id) &
+            (df["Date"] == date) &
+            (df["Location"] == location)
         ]
 
-        return np.array(features).reshape(1, -1)
+        if row.empty:
+            raise ValueError("No matching traffic data found.")
 
-    def predict_flow(self, site_id, timestamp):
+        row = row.iloc[0]
+
+        # Get all V columns
+        flow_values = []
+
+        for i in range(self.timesteps):
+            col_name = f"V{i:02d}"
+
+            if col_name not in row:
+                raise ValueError(f"Missing column: {col_name}")
+
+            flow_values.append(row[col_name])
+
+        # Convert to numpy array
+        features = np.array(flow_values).reshape(1, -1)
+
+        # Normalize using scaler
+        features = self.scaler.transform(features)
+
+        return features
+
+    def predict_flow(self, site_id, date, time, location):
         """
-        Predict traffic flow for a site and time.
+        Predict traffic flow using previous 12 traffic intervals.
         """
 
-        if not self.trained:
-            raise ValueError("Model has not been trained yet.")
-
-        X = self._extract_features(site_id, timestamp)
+        X = self._extract_features(
+            site_id,
+            date,
+            time,
+            location
+        )
 
         prediction = self.model.predict(X)
 
