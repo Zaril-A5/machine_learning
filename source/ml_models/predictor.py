@@ -75,43 +75,62 @@ class TrafficPredictor:
         if self.historical_data is None:
             raise ValueError("Historical traffic data not loaded.")
 
-        # Filter matching rows
-        df = self.historical_data
+        # Combine date + time
+        target_datetime = f"{date} {time}:00"
 
-        row = df[
-            (df["SCATS Number"] == site_id) &
-            (df["Date"] == date) &
-            (df["Location"] == location)
-        ]
+        # Search matching key
+        matching_key = None
 
-        if row.empty:
-            raise ValueError("No matching traffic data found.")
+        for key in self.historical_data.keys():
+            scats_id, dt, loc = key
 
-        row = row.iloc[0]
+            if (
+                scats_id == site_id and
+                loc == location and
+                str(dt) == target_datetime
+            ):
+                matching_key = key
+                break
 
-        # Get all V columns
-        flow_values = []
+        if matching_key is None:
+            raise ValueError(
+                f"No matching traffic data for site {site_id}"
+            )
 
-        for i in range(self.timesteps):
-            col_name = f"V{i:02d}"
+        # Get flow sequence
+        flow_values = self.historical_data[matching_key]
 
-            if col_name not in row:
-                raise ValueError(f"Missing column: {col_name}")
+        # Ensure exactly 12 timesteps
+        flow_values = flow_values[:self.timesteps]
 
-            flow_values.append(row[col_name])
-
-        # Convert to numpy array
+        # Convert to numpy
         features = np.array(flow_values).reshape(1, -1)
 
-        # Normalize using scaler
+        # Normalize
         features = self.scaler.transform(features)
 
         return features
 
-    def predict_flow(self, site_id, date, time, location):
+    def predict_flow(self, site_id, time, date="2006-10-10"):
         """
-        Predict traffic flow using previous 12 traffic intervals.
+        Predict traffic flow using historical sequence data.
         """
+
+        if self.historical_data is None:
+            raise ValueError("Historical traffic data not loaded.")
+
+        # Find matching location from dictionary keys
+        location = None
+
+        for key in self.historical_data.keys():
+            scats_id, dt, loc = key
+
+            if scats_id == site_id:
+                location = loc
+                break
+
+        if location is None:
+            raise ValueError(f"No data found for site {site_id}")
 
         X = self._extract_features(
             site_id,

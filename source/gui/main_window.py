@@ -42,13 +42,18 @@ class MainWindow:
 
             self.loader.load_locations()
 
+            # Load historical traffic flow data
+            self.flow_loader = TrafficFlowLoader(
+                "../data/raw/Scats Data October 2006.xls"
+            )
+
+            self.flow_loader.load_flow_data()
+
             # Build graph
             self.graph = GraphBuilder(self.loader)
 
             # Add graph nodes
             self.graph.add_nodes_from_locations()
-
-            print(list(self.graph.nodes.keys())[:20])
 
             # Connect nearby intersections
             self.graph.add_edges_between_nearby_sites(20.0)
@@ -58,14 +63,7 @@ class MainWindow:
             # Load predictor
             self.predictor = TrafficPredictor()
 
-            # Load historical traffic flow data
-            self.flow_loader = TrafficFlowLoader(
-                "../data/raw/Scats Data October 2006.xls"
-            )
-
-            self.flow_loader.load_flow_data()
-
-            # Give historical data to predictor
+            # Give historical traffic data to predictor
             self.predictor.historical_data = self.flow_loader.flow_data
 
             # Load config file

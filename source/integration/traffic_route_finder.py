@@ -17,8 +17,8 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'data_processing'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'ml_models'))
 
-from data_loader import TrafficLocationLoader
-from graph_builder import GraphBuilder
+from data_processing.data_loader import TrafficLocationLoader
+from data_processing.graph_builder import GraphBuilder
 
 
 class TrafficRouteFinder:
@@ -140,7 +140,7 @@ class TrafficRouteFinder:
         # (flow at destination affects how quickly you can enter that intersection)
         if self.ml_predictor is not None:
             try:
-                flow_15min = self.ml_predictor.predict_flow(site_b, timestamp)
+                flow_15min = self.ml_predictor.predict_flow(site_id=site_b, time=timestamp)
             except Exception as e:
                 print(f"[WARNING] Could not get ML prediction for site {site_b}: {e}")
                 print("[FALLBACK] Using default flow value")
