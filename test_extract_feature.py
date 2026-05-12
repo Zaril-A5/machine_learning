@@ -5,8 +5,8 @@ import sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'source', 'ml_models'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'source', 'data_processing'))
 
-from traffic_flow_loader import TrafficFlowLoader
-from predictor import TrafficPredictor
+from source.data_processing.traffic_flow_loader import TrafficFlowLoader
+from source.ml_models.predictor import TrafficPredictor
 import joblib
 
 def test_extract_features():
